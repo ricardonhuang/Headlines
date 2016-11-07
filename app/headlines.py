@@ -14,10 +14,9 @@ RSS_FEEDS = {'bbc': 'http://feeds.bbci.co.uk/news/rss.xml',
 'fox': 'http://feeds.foxnews.com/foxnews/latest',
 'tecent_news': 'http://news.qq.com/newsgn/rss_newsgn.xml'}
 
-@app.route("/")
-
+@app.route("/",methods=['GET','POST'])
 def get_news():
-    query = request.args.get("publication")
+    query = request.form.get("publication")
     if not query or query.lower() not in RSS_FEEDS:
         publication = "bbc"
     else:
@@ -27,6 +26,8 @@ def get_news():
     #print len(feed)
     #print feed
     #first_article = feed['entries'][0]
+    for article in feed['entries']:
+        print article.summary
     return render_template("home.html",articles=feed['entries'])
 
 
