@@ -4,42 +4,48 @@ Created on 2016��11��2��
 
 @author: huangning
 '''
-from flask import Flask ,render_template,request
+from flask import Flask ,render_template,request,make_response
 import feedparser
-import json,urllib,urllib2
+import json,urllib,urllib2,datetime
+
 
 app = Flask(__name__)
-RSS_FEEDS = {'bbc': 'http://feeds.bbci.co.uk/news/rss.xml',
+publications = {'bbc': 'http://feeds.bbci.co.uk/news/rss.xml',
 'xinhuafangchan': 'http://www.xinhuanet.com/house/news_house.xml',
 'fox': 'http://feeds.foxnews.com/foxnews/latest',
 'tecent_news': 'http://news.qq.com/newsgn/rss_newsgn.xml'}
 
 DEFAULTS={'publication':'bbc','city':'London,UK'}
 
-
+def get_value_with_fallback(key):
+    if request.args.get(key):
+        return request.args.get(key)
+    if request.cookies.get(key):
+        return request.cookies.get(key)
+    return DEFAULTS[key]
 
 @app.route("/")
 def home():
     # get customized headlines, based on user input or default
-    publication = request.args.get('publication')
-    if not publication:
-         publication = DEFAULTS['publication']
+    # get customised headlines, based on user input or default
+    publication = get_value_with_fallback("publication")
     articles = get_news(publication)
-    # get customized weather based on user input or default
-    city = request.args.get('city')
-    if not city:
-        city = DEFAULTS['city']
-    weather = get_weather(city)
-    return render_template("home.html", articles=articles,
-                           weather=weather)
+    # get customised weather based on user input or default
+    city = get_value_with_fallback("city")
+    weather = get_weather (city)
+    
+    response = make_response(render_template("home.html",
+                                             articles=articles,
+                                             weather=weather,
+                                             publications=publications))
+    expires = datetime.datetime.now() + datetime.timedelta(days=365)
+    response.set_cookie("publication", publication, expires=expires)
+    response.set_cookie("city", city, expires=expires)
+    return response
 
 def get_news(query):
-    query = request.args.get("publication")
-    if not query or query.lower() not in RSS_FEEDS:
-        publication = "bbc"
-    else:
-        publication = query.lower()
-    feed = feedparser.parse(RSS_FEEDS[publication])
+    publication = query.lower()
+    feed = feedparser.parse(publications[publication])
    
     #print len(feed)
     #print feed
